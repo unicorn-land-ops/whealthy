@@ -54,6 +54,7 @@ describe("spending rules", () => {
 describe("tax calculation", () => {
   it("blends taxes across components", () => {
     const params = baseParams({
+      taxJurisdiction: "custom",
       taxInterest: 0.35,
       taxDividends: 0.2,
       taxRealizedGains: 0.25,
