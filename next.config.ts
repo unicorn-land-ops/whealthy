@@ -33,9 +33,17 @@ const securityHeaders = [
   },
 ];
 
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  output: "export",
+  basePath: isGitHubPages ? "/whealthy" : "",
+  assetPrefix: isGitHubPages ? "/whealthy/" : "",
+  images: {
+    unoptimized: true,
+  },
   async headers() {
     return [
       {
