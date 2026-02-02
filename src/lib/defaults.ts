@@ -1,0 +1,103 @@
+import { Params } from "@/lib/types";
+
+export const DEFAULT_PARAMS: Params = {
+  currency: "$",
+  calculationMode: "forward",
+  startWealth: 10_000_000,
+  liquidShare: 0.65,
+  currentAge: 45,
+  deathAge: 95,
+  spendingRule: "fixed",
+  annualExpenseNow: 300_000,
+  expenseInflation: 0.025,
+  spendPctWealth: 0.035,
+  guardrails: { targetPctWealth: 0.035, minChange: -0.1, maxChange: 0.1 },
+  philanthropyMode: "%wealth",
+  philanthropyFixedNow: 100_000,
+  philanthropyPercent: 0.01,
+  desiredTerminalWealth: 0,
+  lifetimeSpendingTotal: 0,
+  realMode: false,
+  taxJurisdiction: "germany-us",
+  taxInterest: 0.35,
+  taxDividends: 0.25,
+  taxRealizedGains: 0.25,
+  holdingCompanyStructure: {
+    publicDividendSource: "us",
+    privateDividendSource: "us",
+    usOwnershipPct: 0.1,
+    germanOwnershipPct: 0.1,
+    isVermoegensverwaltend: true,
+    germanTradeTaxRate: 0.14,
+    usCorporateTaxRate: 0.21,
+  },
+  assetAlloc: { public: 0.5, private: 0.35, cash: 0.15 },
+  assetReturn: { public: 0.06, private: 0.11, cash: 0.03 },
+  assetVol: { public: 0.16, private: 0.25, cash: 0.01 },
+  publicDivYield: 0.02,
+  publicRealizationRate: 0.25,
+  privateRealizationRate: 0.2,
+  privCommit: {
+    enabled: true,
+    totalCommitment: 2_000_000,
+    callYears: 4,
+    distLagYears: 5,
+    distYears: 6,
+    distMultiple: 2,
+  },
+  runMonteCarlo: false,
+  numPaths: 500,
+  oneOffs: [
+    { id: "default-1", year: 3, amount: -500_000, label: "Home renovation" },
+    { id: "default-2", year: 10, amount: 1_000_000, label: "Liquidity event" },
+  ],
+};
+
+export const SEED_PRESETS: { id: string; label: string; patch: Partial<Params> }[] = [
+  {
+    id: "baseline",
+    label: "$10m / $300k / 1% philanthropy",
+    patch: {
+      currency: "$",
+      startWealth: 10_000_000,
+      annualExpenseNow: 300_000,
+      philanthropyMode: "%wealth",
+      philanthropyPercent: 0.01,
+      assetAlloc: { public: 0.5, private: 0.35, cash: 0.15 },
+    },
+  },
+  {
+    id: "inflation",
+    label: "High inflation",
+    patch: {
+      realMode: false,
+      expenseInflation: 0.05,
+      assetReturn: { public: 0.08, private: 0.12, cash: 0.045 },
+    },
+  },
+  {
+    id: "all-cash",
+    label: "All-cash",
+    patch: {
+      assetAlloc: { public: 0, private: 0, cash: 1 },
+      assetReturn: { public: 0.01, private: 0.01, cash: 0.03 },
+    },
+  },
+  {
+    id: "privates",
+    label: "Aggressive privates",
+    patch: {
+      assetAlloc: { public: 0.3, private: 0.6, cash: 0.1 },
+      assetReturn: { public: 0.07, private: 0.14, cash: 0.025 },
+      privCommit: {
+        enabled: true,
+        totalCommitment: 4_000_000,
+        callYears: 5,
+        distLagYears: 4,
+        distYears: 8,
+        distMultiple: 2.5,
+      },
+    },
+  },
+];
+
