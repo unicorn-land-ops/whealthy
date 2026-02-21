@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatPercent } from "@/lib/format";
 import { DEFAULT_PARAMS, SEED_PRESETS } from "@/lib/defaults";
+import { deriveTaxSetupFromResidences, TAX_RESIDENCE_COUNTRIES, TaxResidenceCountry } from "@/lib/taxProfiles";
 import { Params } from "@/lib/types";
 
 type ParamsFormProps = {
@@ -118,6 +119,55 @@ export const ParamsForm = (props: ParamsFormProps) => {
       cash: params.assetAlloc.cash / total,
     };
   }, [params.assetAlloc]);
+
+  const selectedTaxCountries = useMemo(
+    () => TAX_RESIDENCE_COUNTRIES.filter((country) => params.taxResidences.includes(country.id)),
+    [params.taxResidences],
+  );
+
+  const derivedTaxSetup = useMemo(
+    () => deriveTaxSetupFromResidences(params.taxResidences, params.taxResidenceWeights, params.doubleTaxRelief),
+    [params.taxResidences, params.taxResidenceWeights, params.doubleTaxRelief],
+  );
+
+  const applyDerivedTaxSetup = (
+    residences: TaxResidenceCountry[],
+    weights = params.taxResidenceWeights,
+    doubleTaxRelief = params.doubleTaxRelief,
+  ) => {
+    const derived = deriveTaxSetupFromResidences(residences, weights, doubleTaxRelief);
+    onUpdate({
+      taxResidences: residences,
+      taxResidenceWeights: weights,
+      doubleTaxRelief,
+      taxJurisdiction: derived.taxJurisdiction,
+      taxInterest: derived.taxInterest,
+      taxDividends: derived.taxDividends,
+      taxRealizedGains: derived.taxRealizedGains,
+      holdingCompanyStructure: {
+        ...params.holdingCompanyStructure,
+        ...derived.holdingCompanyStructurePatch,
+      },
+    });
+  };
+
+  const toggleTaxResidence = (country: TaxResidenceCountry) => {
+    const isSelected = params.taxResidences.includes(country);
+    const next = isSelected
+      ? params.taxResidences.filter((item) => item !== country)
+      : [...params.taxResidences, country];
+
+    if (next.length === 0) return;
+
+    const adjustedWeights = { ...params.taxResidenceWeights };
+    if (isSelected) {
+      adjustedWeights[country] = 0;
+    } else if (adjustedWeights[country] === 0) {
+      adjustedWeights[country] = 1;
+    }
+
+    applyDerivedTaxSetup(next, adjustedWeights);
+  };
 
   return (
     <TooltipProvider>
@@ -401,37 +451,85 @@ export const ParamsForm = (props: ParamsFormProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Tax jurisdiction</Label>
+              <Label>Tax residences (multi-select)</Label>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={params.taxJurisdiction === "custom" ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => onChange("taxJurisdiction", "custom")}
-                >
-                  Custom rates
-                </Button>
-                <Button
-                  variant={params.taxJurisdiction === "germany" ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => onChange("taxJurisdiction", "germany")}
-                >
-                  Germany
-                </Button>
-                <Button
-                  variant={params.taxJurisdiction === "us" ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => onChange("taxJurisdiction", "us")}
-                >
-                  US
-                </Button>
-                <Button
-                  variant={params.taxJurisdiction === "germany-us" ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => onChange("taxJurisdiction", "germany-us")}
-                >
-                  Germany + US
-                </Button>
+                {TAX_RESIDENCE_COUNTRIES.map((country) => {
+                  const selected = params.taxResidences.includes(country.id);
+                  return (
+                    <Button
+                      key={country.id}
+                      variant={selected ? "default" : "secondary"}
+                      size="sm"
+                      onClick={() => toggleTaxResidence(country.id)}
+                    >
+                      {country.label}
+                    </Button>
+                  );
+                })}
               </div>
+              <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                <div className="font-medium text-foreground">Selected: {selectedTaxCountries.map((c) => c.label).join(", ")}</div>
+                <div className="mt-1">Derived mode: <span className="font-medium text-foreground">{derivedTaxSetup.taxJurisdiction}</span></div>
+                <ul className="mt-1 list-disc pl-4">
+                  {derivedTaxSetup.assumptions.map((assumption) => (
+                    <li key={assumption}>{assumption}</li>
+                  ))}
+                </ul>
+              </div>
+              <Row>
+                <PercentField
+                  label="US weight"
+                  value={params.taxResidenceWeights.us}
+                  onChange={(value) =>
+                    applyDerivedTaxSetup(params.taxResidences, {
+                      ...params.taxResidenceWeights,
+                      us: Math.max(0, Math.min(1, value)),
+                    })
+                  }
+                />
+                <PercentField
+                  label="UK weight"
+                  value={params.taxResidenceWeights.uk}
+                  onChange={(value) =>
+                    applyDerivedTaxSetup(params.taxResidences, {
+                      ...params.taxResidenceWeights,
+                      uk: Math.max(0, Math.min(1, value)),
+                    })
+                  }
+                />
+                <PercentField
+                  label="Germany weight"
+                  value={params.taxResidenceWeights.germany}
+                  onChange={(value) =>
+                    applyDerivedTaxSetup(params.taxResidences, {
+                      ...params.taxResidenceWeights,
+                      germany: Math.max(0, Math.min(1, value)),
+                    })
+                  }
+                />
+                <PercentField
+                  label="France weight"
+                  value={params.taxResidenceWeights.france}
+                  onChange={(value) =>
+                    applyDerivedTaxSetup(params.taxResidences, {
+                      ...params.taxResidenceWeights,
+                      france: Math.max(0, Math.min(1, value)),
+                    })
+                  }
+                />
+                <PercentField
+                  label="Double-tax relief factor"
+                  value={params.doubleTaxRelief}
+                  title="0% = no relief, 100% = full overlap relief between selected residences"
+                  onChange={(value) =>
+                    applyDerivedTaxSetup(
+                      params.taxResidences,
+                      params.taxResidenceWeights,
+                      Math.max(0, Math.min(1, value)),
+                    )
+                  }
+                />
+              </Row>
             </div>
             {params.taxJurisdiction !== "custom" && (
               <>

@@ -44,6 +44,21 @@ export const paramsSchema = z.object({
   lifetimeSpendingTotal: z.number().min(0).default(0),
   realMode: z.boolean(),
   // Tax configuration
+  taxResidences: z.array(z.enum(["us", "uk", "germany", "france"]))
+    .min(1)
+    .default(["germany", "us"]),
+  taxResidenceWeights: z.object({
+    us: z.number().min(0).max(1),
+    uk: z.number().min(0).max(1),
+    germany: z.number().min(0).max(1),
+    france: z.number().min(0).max(1),
+  }).default({
+    us: 0.5,
+    uk: 0,
+    germany: 0.5,
+    france: 0,
+  }),
+  doubleTaxRelief: z.number().min(0).max(1).default(0.5),
   taxJurisdiction: z.enum(["custom", "germany", "us", "germany-us"]).default("custom"),
   // Legacy tax fields (used when taxJurisdiction is "custom")
   taxInterest: z.number().min(0).max(1),
@@ -161,6 +176,9 @@ export const paramsStorageSchema = paramsSchema.pick({
   desiredTerminalWealth: true,
   lifetimeSpendingTotal: true,
   realMode: true,
+  taxResidences: true,
+  taxResidenceWeights: true,
+  doubleTaxRelief: true,
   taxJurisdiction: true,
   taxInterest: true,
   taxDividends: true,
