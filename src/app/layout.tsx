@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -29,6 +30,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* @ts-expect-error Web Component */}
+        <unicorn-footer />
+        <Script src="https://unicorn-land.pages.dev/components/footer.js" strategy="lazyOnload" />
       </body>
     </html>
   );
